@@ -1,17 +1,26 @@
 "use client"
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 
 const Canvas = () => {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const [backgroundColor, setBackgroundColor] = useState<string>('#ffffff');
-    const [fontWeight, setFontWeight] = useState<string>('normal'); // Adjusted state type to string
+    const [fontWeight, setFontWeight] = useState<string>('normal');
     const [isDrawing, setIsDrawing] = useState<boolean>(false);
+
+    useEffect(() => {
+        if (canvasRef.current) {
+            const ctx = canvasRef.current.getContext('2d');
+            if (ctx) {
+                ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+            }
+        }
+    }, []);
 
     const handleBackgroundColorChange = (color: string) => {
         setBackgroundColor(color);
     };
 
-    const handleFontWeightChange = (weight: string) => { // Adjusted parameter type to string
+    const handleFontWeightChange = (weight: string) => {
         setFontWeight(weight);
     };
 
@@ -25,21 +34,27 @@ const Canvas = () => {
         link.click();
     };
 
-    const startDrawing = (event: React.MouseEvent<HTMLCanvasElement>) => {
+    const startDrawing = (event: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
         setIsDrawing(true);
         const ctx = canvasRef.current?.getContext('2d');
         if (!ctx) return;
 
         ctx.beginPath();
-        ctx.moveTo(event.nativeEvent.offsetX, event.nativeEvent.offsetY);
+        ctx.moveTo(
+            event.nativeEvent instanceof MouseEvent ? event.nativeEvent.offsetX : event.nativeEvent.touches[0].clientX,
+            event.nativeEvent instanceof MouseEvent ? event.nativeEvent.offsetY : event.nativeEvent.touches[0].clientY
+        );
     };
 
-    const draw = (event: React.MouseEvent<HTMLCanvasElement>) => {
+    const draw = (event: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
         if (!isDrawing) return;
         const ctx = canvasRef.current?.getContext('2d');
         if (!ctx) return;
 
-        ctx.lineTo(event.nativeEvent.offsetX, event.nativeEvent.offsetY);
+        ctx.lineTo(
+            event.nativeEvent instanceof MouseEvent ? event.nativeEvent.offsetX : event.nativeEvent.touches[0].clientX,
+            event.nativeEvent instanceof MouseEvent ? event.nativeEvent.offsetY : event.nativeEvent.touches[0].clientY
+        );
         ctx.stroke();
     };
 
@@ -60,13 +75,11 @@ const Canvas = () => {
     return (
         <div className="flex flex-col items-center justify-center h-screen bg-gray-100">
             <div className="mb-4 flex items-center justify-center">
-
                 <div className='flex'>
                     <label htmlFor="backgroundColor">Background Color:</label>
                     <input
                         id="backgroundColor"
                         type="color"
-                        
                         value={backgroundColor}
                         onChange={(e) => handleBackgroundColorChange(e.target.value)}
                     />
@@ -79,21 +92,24 @@ const Canvas = () => {
                         onChange={(e) => handleFontWeightChange(e.target.value)}
                     >
                         <option value="normal">Normal</option>
-                        <option value="semibold">Bold</option>
-                        <option value="bold">Bolder</option>
+                        <option value="bold">Bold</option>
+                        <option value="bolder">Bolder</option>
                     </select>
                 </div>
             </div>
             <canvas
                 ref={canvasRef}
-                width={600}
-                height={400}
+                width={window.innerWidth}
+                height={window.innerHeight * 0.6}
                 className={`mx-2 border-gray-800 text-white font-${fontWeight}`}
-                style={{ backgroundColor: backgroundColor}}
+                style={{ backgroundColor: backgroundColor }}
                 onMouseDown={startDrawing}
                 onMouseMove={draw}
                 onMouseUp={stopDrawing}
                 onMouseLeave={stopDrawing}
+                onTouchStart={startDrawing}
+                onTouchMove={draw}
+                onTouchEnd={stopDrawing}
             />
             <div className="flex justify-between">
                 <button onClick={handleClearScreen} className="bg-red-600 px-3 py-1 mt-2 mx-3 hover:bg-red-400 text-white rounded-md">
